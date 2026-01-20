@@ -4,10 +4,12 @@
   "description": "Publishes currency exchange rates to Nostr relay for Splitstr app",
   "main": "currency-rate-publisher.js",
   "scripts": {
-    "start": "node currency-rate-publisher.js",
-    "start:bitcoin": "node bitcoin-rate-publisher.js",
+    "start": "node publishCurrencies.js",
     "test": "node -e \"require('./currency-rate-publisher.js').fetchCurrencyRates().then(d => console.log(d))\"",
     "test:bitcoin": "node -e \"require('./bitcoin-rate-publisher.js').fetchBitcoinRate().then(d => console.log(d))\"",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
     "generate-key": "node -e \"const { generateSecretKey } = require('nostr-tools'); const { bytesToHex } = require('@noble/hashes/utils'); const sk = generateSecretKey(); console.log('Private Key (hex):', bytesToHex(sk)); console.log('Keep this secret and add to .env file!');\""
   },
   "keywords": [
