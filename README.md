@@ -5,18 +5,16 @@ Automatically fetches currency exchange rates and publishes them to a Nostr rela
 ## Features
 
 ### Fiat Currency Rates
-- ✅ Fetches rates for: USD, EUR, CAD, GBP, JPY, CNY, MXN
-- ✅ Publishes to Nostr relay as kind 30078 events
-- ✅ Runs automatically every hour (on the hour: 1:00, 2:00, etc.)
-- ✅ Uses free Frankfurter API (no API key needed)
+- Fetches rates for: USD, EUR, CAD, GBP, JPY, CNY, MXN
+- Publishes to Nostr relay as kind 30078 events
+- Runs automatically every 15 minutes
+- Uses free Frankfurter API (no API key needed)
 
 ### Bitcoin Rate
-- ✅ Fetches BTC/USD rate from Blockchain.info API
-- ✅ Publishes as separate kind 30078 event
-- ✅ Runs automatically every 15 minutes
-- ✅ No API key needed
-
-- ✅ Graceful error handling and logging
+- Fetches BTC/USD rate from Blockchain.info API
+- Publishes as separate kind 30078 event
+- Runs automatically every hour (on the hour)
+- No API key needed
 
 ## Prerequisites
 
@@ -29,7 +27,6 @@ Automatically fetches currency exchange rates and publishes them to a Nostr rela
 ### 1. Install Dependencies
 
 ```bash
-cd /Users/jfjobidon/Desktop/redshift.nosync/nostrapp/splitstr
 npm install
 ```
 
@@ -56,88 +53,38 @@ Edit `.env` and add your private key:
 NOSTR_PRIVATE_KEY=your_private_key_from_step_2
 ```
 
-### 4. Start the Publishers
+### 4. Start the Publisher
 
-**Fiat currency rates (hourly):**
 ```bash
 npm start
 ```
 
-**Bitcoin rate (every 15 minutes):**
-```bash
-npm run start:bitcoin
-```
+This runs the unified controller that publishes both fiat and Bitcoin rates on their respective schedules.
 
 ## Usage
 
-### Run as a Background Service
-
-Using PM2 (recommended for production):
-
-```bash
-# Install PM2 globally
-npm install -g pm2
-
-# Start the service
-pm2 start currency-rate-publisher.js --name splitstr-rates
-
-# View logs
-pm2 logs splitstr-rates
-
-# Stop the service
-pm2 stop splitstr-rates
-
-# Restart
-pm2 restart splitstr-rates
-
-# Auto-start on system boot
-pm2 startup
-pm2 save
-```
-
 ### Run with Docker
-
-Create a `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-CMD ["node", "currency-rate-publisher.js"]
-```
 
 Build and run:
 
 ```bash
-docker build -t currency-publisher .
-docker run -d --name currency-publisher --add-host=host.docker.internal:host-gateway --restart unless-stopped currency-rate-publisher
+npm run docker:build
+npm run docker:up
 ```
 
-> **Note:** The `--add-host=host.docker.internal:host-gateway` flag allows the container to resolve `host.docker.internal` to your host machine. Since the default relay URL is `ws://localhost:8080`, you must set the `RELAY_URL` environment variable to `ws://host.docker.internal:8080` for the container to reach a relay running on your host:
-> ```bash
-> docker run -d --name currency-publisher \
->   --add-host=host.docker.internal:host-gateway \
->   -e RELAY_URL=ws://host.docker.internal:8080 \
->   --restart unless-stopped currency-rate-publisher
-> ```
+Stop the container:
 
-**For Docker:**
 ```bash
-docker run -e RELAY_URL=ws://host.docker.internal:8080 ...
+npm run docker:down
 ```
 
-**For local development:**
-```bash
-npm start  # Uses ws://localhost:8080 from config.js
-```
+The container uses `--network host` to access the relay on localhost.
 
-### Test API Connection
+### Test API Connections
 
 **Test fiat rates:**
 ```bash
-npm test
+npm run test:fiat
 ```
 
 **Test Bitcoin rate:**
@@ -146,6 +93,16 @@ npm run test:bitcoin
 ```
 
 These will fetch rates once without publishing to Nostr.
+
+## Architecture
+
+```
+publishCurrencies.js     # Controller - schedules and orchestrates
+├── currencyRates.js     # Fetches fiat rates from Frankfurter API
+├── bitcoinRates.js      # Fetches BTC rate from Blockchain.info
+├── nostrUtils.js        # Nostr publishing utilities
+└── config.js            # Configuration
+```
 
 ## Event Format
 
@@ -157,17 +114,9 @@ These will fetch rates once without publishing to Nostr.
   "pubkey": "<your-pubkey>",
   "created_at": 1705680000,
   "tags": [
-    ["d", "splitstr-currency-rates"],
+    ["d", "splitstr-fiat-rates"],
     ["t", "splitstr"],
-    ["t", "currency-rates"],
-    ["L", "currency"],
-    ["l", "USD", "currency"],
-    ["l", "EUR", "currency"],
-    ["l", "CAD", "currency"],
-    ["l", "GBP", "currency"],
-    ["l", "JPY", "currency"],
-    ["l", "CNY", "currency"],
-    ["l", "MXN", "currency"]
+    ["t", "fiat"]
   ],
   "content": "{\"baseCurrency\":\"USD\",\"rates\":{\"EUR\":0.92,\"CAD\":1.35,\"GBP\":0.79,\"JPY\":148.5,\"CNY\":7.24,\"MXN\":16.8},\"updatedAt\":\"2025-01-19T14:00:00Z\",\"source\":\"frankfurter.app\"}",
   "sig": "<signature>"
@@ -184,10 +133,7 @@ These will fetch rates once without publishing to Nostr.
   "tags": [
     ["d", "splitstr-bitcoin-rates"],
     ["t", "splitstr"],
-    ["t", "bitcoin-rates"],
-    ["L", "currency"],
-    ["l", "BTC", "currency"],
-    ["l", "USD", "currency"]
+    ["t", "bitcoin-rates"]
   ],
   "content": "{\"baseCurrency\":\"BTC\",\"rates\":{\"USD\":104500.00},\"updatedAt\":\"2025-01-19T14:00:00Z\",\"source\":\"blockchain.info\"}",
   "sig": "<signature>"
@@ -234,7 +180,7 @@ const relays = ['ws://localhost:8080'];
 // Query fiat rates
 const fiatEvents = await pool.querySync(relays, {
   kinds: [30078],
-  '#d': ['splitstr-currency-rates'],
+  '#d': ['splitstr-fiat-rates'],
   limit: 1
 });
 
@@ -264,79 +210,43 @@ if (btcEvents.length > 0) {
 # If running directly
 # Logs are output to console
 
-# If using PM2
-pm2 logs splitstr-rates
-
 # If using Docker
-docker logs -f splitstr-rates
-```
-
-### Log Format
-
-```
-============================================================
-[2025-01-19T14:00:00.000Z] Starting currency rate update...
-============================================================
-[2025-01-19T14:00:00.123Z] Fetching rates from: https://api.frankfurter.app/latest?from=USD&to=EUR,CAD,GBP,JPY,CNY,MXN
-[2025-01-19T14:00:00.456Z] Successfully fetched rates: { EUR: 0.92, CAD: 1.35, ... }
-[2025-01-19T14:00:00.789Z] Publishing event to ws://localhost:8080
-Event ID: abc123...
-Public Key: def456...
-[2025-01-19T14:00:01.012Z] ✓ Successfully published to Nostr relay
-============================================================
-[2025-01-19T14:00:01.012Z] ✓ Update completed successfully
-============================================================
-
-Next update scheduled in 60 minutes
+docker logs -f currency-publisher
 ```
 
 ## Troubleshooting
 
 ### "NOSTR_PRIVATE_KEY environment variable not set"
 
-Make sure you've created a `.env` file with your private key or set the environment variable:
+Make sure you've created a `.env` file with your private key:
 
 ```bash
-export NOSTR_PRIVATE_KEY=your_hex_key_here
-npm start
+cp .env.example .env
+# Edit .env and add your key
 ```
 
 ### "Connection to relay failed"
 
-1. Check if your Nostr relay is running:
-   ```bash
-   # If using nostream or similar
-   docker ps | grep nostr
-   ```
-
-2. Test relay connectivity:
-   ```bash
-   websocat ws://localhost:8080
-   ```
-
-3. Check firewall settings
+1. Check if your Nostr relay is running
+2. Verify the relay URL in config.js or RELAY_URL environment variable
 
 ### "Failed to fetch rates"
 
 1. Check internet connection
-2. Verify Frankfurter API is accessible:
+2. Verify APIs are accessible:
    ```bash
    curl https://api.frankfurter.app/latest?from=USD&to=EUR
+   curl https://blockchain.info/ticker
    ```
-
-### Rate Limit Issues
-
-Frankfurter API is free and has no rate limits for reasonable use. Running once per hour is well within acceptable use.
 
 ## Configuration
 
-You can modify these constants in `currency-rate-publisher.js`:
+Edit `config.js` to customize:
 
-```javascript
-const RELAY_URL = 'ws://localhost:8080';  // Your relay URL
-const CURRENCIES = ['EUR', 'CAD', 'GBP', 'JPY', 'CNY', 'MXN'];  // Currencies to fetch
-const BASE_CURRENCY = 'USD';  // Base currency
-```
+- `relay.url` - Your relay URL
+- `relay.eventKind` - Nostr event kind (default: 30078)
+- `fiat.currencies` - Currencies to fetch
+- `fiat.baseCurrency` - Base currency
 
 ## API Reference
 
@@ -344,41 +254,19 @@ const BASE_CURRENCY = 'USD';  // Base currency
 
 - Endpoint: `https://api.frankfurter.app/latest`
 - Documentation: https://www.frankfurter.app/docs/
-- Rate Limit: None (reasonable use)
 - Data Source: European Central Bank
 
 ### Blockchain.info API (Bitcoin Rate)
 
 - Endpoint: `https://blockchain.info/ticker`
 - Documentation: https://www.blockchain.com/explorer/api/exchange_rates_api
-- Rate Limit: None (reasonable use)
-- Data Source: Blockchain.com
-
-### Supported Currencies
-
-**Fiat (from Frankfurter):**
-- USD - US Dollar (base)
-- EUR - Euro
-- CAD - Canadian Dollar
-- GBP - British Pound
-- JPY - Japanese Yen
-- CNY - Chinese Yuan
-- MXN - Mexican Peso
-
-**Crypto (from Blockchain.info):**
-- BTC - Bitcoin (priced in USD)
 
 ## Security Notes
 
 - **Never commit your `.env` file** - it contains your private key
-- Keep your private key secure - anyone with it can publish events as you
+- Keep your private key secure
 - Consider using a dedicated keypair for this service
-- If compromised, generate a new keypair and update clients
 
 ## License
 
 MIT
-
-## Support
-
-For issues or questions, contact the Splitstr development team.

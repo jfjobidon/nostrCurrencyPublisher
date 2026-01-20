@@ -1,5 +1,5 @@
 {
-  "name": "splitstr-currency-publisher",
+  "name": "nostr-currency-publisher",
   "version": "1.0.0",
   "description": "Publishes currency exchange rates to Nostr relay for Splitstr app",
   "main": "publishCurrencies.js",

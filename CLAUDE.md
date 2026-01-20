@@ -4,27 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Currency Rate Publisher for Splitstr - Node.js services that fetch currency exchange rates and publish them to a Nostr relay as kind 30078 events.
+Currency Rate Publisher for Splitstr - Node.js service that fetches currency exchange rates and publishes them to a Nostr relay as kind 30078 events.
 
-- **Fiat rates**: Hourly updates from Frankfurter API
-- **Bitcoin rate**: 15-minute updates from Blockchain.info API
+- **Fiat rates**: Every 15 minutes from Frankfurter API
+- **Bitcoin rate**: Every hour from Blockchain.info API
 
 ## Commands
 
 ```bash
 npm install            # Install dependencies
-npm start              # Run fiat currency publisher (hourly)
-npm run start:bitcoin  # Run Bitcoin publisher (every 15 min)
-npm test               # Test fiat API connection
+npm start              # Run the unified publisher
+npm run test:fiat      # Test fiat API connection
 npm run test:bitcoin   # Test Bitcoin API connection
 npm run generate-key   # Generate a new Nostr keypair
-```
-
-## Docker
-
-```bash
-docker build -t currency-publisher .
-docker run -d --name currency-publisher --add-host=host.docker.internal:host-gateway --restart unless-stopped currency-rate-publisher
+npm run docker:build   # Build Docker image
+npm run docker:up      # Start container
+npm run docker:down    # Stop and remove container
 ```
 
 ## Environment Variables
@@ -36,23 +31,23 @@ Configure in `.env` file (see `.env.example`).
 
 ## Architecture
 
-Two independent publishers:
+```
+publishCurrencies.js     # Controller - scheduling and orchestration
+├── currencyRates.js     # fetchCurrencyRates() - Frankfurter API
+├── bitcoinRates.js      # fetchBitcoinRate() - Blockchain.info API
+├── nostrUtils.js        # publishEventToNostr(), publishFiatRatesToNostr(), publishBitcoinRateToNostr()
+└── config.js            # All configuration (relay, fiat, bitcoin settings)
+```
 
-**currency-rate-publisher.js** (Fiat):
-- `fetchCurrencyRates()` - Fetches from Frankfurter API
-- `publishRatesToNostr()` - Publishes with d-tag `splitstr-currency-rates`
-- `scheduleHourlyRuns()` - Runs every hour on the hour
-
-**bitcoin-rate-publisher.js** (Bitcoin):
-- `fetchBitcoinRate()` - Fetches from Blockchain.info API
-- `publishBitcoinRateToNostr()` - Publishes with d-tag `splitstr-bitcoin-rates`
-- `scheduleQuarterHourlyRuns()` - Runs every 15 minutes
-
-Both require `ws` package with `global.WebSocket = WebSocket` for Node.js WebSocket support.
+The controller handles all scheduling:
+- Fiat: every 15 minutes (quarter hours)
+- Bitcoin: every hour (minute 0)
 
 ## Nostr Event Details
 
 | Event | d-tag | Source | Schedule |
 |-------|-------|--------|----------|
-| Fiat | `splitstr-currency-rates` | frankfurter.app | Hourly |
-| Bitcoin | `splitstr-bitcoin-rates` | blockchain.info | 15 min |
+| Fiat | `splitstr-fiat-rates` | frankfurter.app | 15 min |
+| Bitcoin | `splitstr-bitcoin-rates` | blockchain.info | Hourly |
+
+Events use kind 30078 (configurable in `config.js`).

@@ -4,45 +4,54 @@
 
 Currency Rate Publisher is a Node.js service that fetches currency exchange rates and publishes them to a Nostr relay as kind 30078 replaceable events.
 
-Two separate publishers run independently:
-- **Fiat rates**: Fetches from Frankfurter API (ECB data), publishes every hour
-- **Bitcoin rate**: Fetches from Blockchain.info API, publishes every 15 minutes
+A unified controller runs both publishers:
+- **Fiat rates**: Fetches from Frankfurter API (ECB data), publishes every 15 minutes
+- **Bitcoin rate**: Fetches from Blockchain.info API, publishes every hour (on the hour)
+
+## File Structure
+
+```
+publishCurrencies.js     # Controller - scheduling and orchestration
+├── currencyRates.js     # Fetches fiat rates from Frankfurter API
+├── bitcoinRates.js      # Fetches BTC rate from Blockchain.info
+├── nostrUtils.js        # Nostr publishing utilities
+└── config.js            # Configuration
+```
 
 ## Data Flow
 
 ```
-Frankfurter API  -->  currency-rate-publisher.js  -->  Nostr Relay
-(EUR, CAD, GBP,       (fetch, sign, publish)          (kind 30078)
- JPY, CNY, MXN)       every hour                       d: splitstr-currency-rates
+Frankfurter API  -->  currencyRates.js  -->  nostrUtils.js  -->  Nostr Relay
+(EUR, CAD, GBP,       fetchCurrencyRates()   publishFiatRatesToNostr()   (kind 30078)
+ JPY, CNY, MXN)                                                          d: splitstr-fiat-rates
 
-Blockchain.info  -->  bitcoin-rate-publisher.js   -->  Nostr Relay
-(BTC/USD)             (fetch, sign, publish)          (kind 30078)
-                      every 15 minutes                 d: splitstr-bitcoin-rates
+Blockchain.info  -->  bitcoinRates.js   -->  nostrUtils.js  -->  Nostr Relay
+(BTC/USD)             fetchBitcoinRate()     publishBitcoinRateToNostr() (kind 30078)
+                                                                          d: splitstr-bitcoin-rates
 ```
+
+## Scheduling
+
+The controller (`publishCurrencies.js`) handles all timing:
+- Runs fiat update every 15 minutes (on quarter hours: 0, 15, 30, 45)
+- Runs Bitcoin update only on the hour (when minute = 0)
+- Both run immediately on startup
 
 ## Fiat Currency Event Example
 
 ```json
 {
   "kind": 30078,
-  "id": "2e1de8a6e9961b5f36f2f8f09451fea8feb6a7e63b0cfaf3568bcff7ed799842",
-  "pubkey": "c562d7111df113c06bf0824fa4a2a916f33368e1660643857d4343845192d425",
+  "id": "2e1de8a6...",
+  "pubkey": "c562d711...",
   "created_at": 1768874402,
   "tags": [
-    ["d", "splitstr-currency-rates"],
+    ["d", "splitstr-fiat-rates"],
     ["t", "splitstr"],
-    ["t", "currency-rates"],
-    ["L", "currency"],
-    ["l", "USD", "currency"],
-    ["l", "EUR", "currency"],
-    ["l", "CAD", "currency"],
-    ["l", "GBP", "currency"],
-    ["l", "JPY", "currency"],
-    ["l", "CNY", "currency"],
-    ["l", "MXN", "currency"]
+    ["t", "fiat"]
   ],
   "content": "{\"baseCurrency\":\"USD\",\"rates\":{\"CAD\":1.3884,\"CNY\":6.9634,\"EUR\":0.85977,\"GBP\":0.74551,\"JPY\":157.93,\"MXN\":17.6296},\"updatedAt\":\"2026-01-20T02:00:02.235Z\",\"source\":\"frankfurter.app\"}",
-  "sig": "90185256881f77911e82f0bdcbd06b3f74752cc27d5f2d6843646a6b10ff8b0b6322bf338f50d7bd6e0b7cec840d95e720c7309ead995f6c5c1c35110b7a56ac"
+  "sig": "90185256..."
 }
 ```
 
@@ -52,17 +61,14 @@ Blockchain.info  -->  bitcoin-rate-publisher.js   -->  Nostr Relay
 {
   "kind": 30078,
   "id": "abc123...",
-  "pubkey": "c562d7111df113c06bf0824fa4a2a916f33368e1660643857d4343845192d425",
+  "pubkey": "c562d711...",
   "created_at": 1768874402,
   "tags": [
     ["d", "splitstr-bitcoin-rates"],
     ["t", "splitstr"],
-    ["t", "bitcoin-rates"],
-    ["L", "currency"],
-    ["l", "BTC", "currency"],
-    ["l", "USD", "currency"]
+    ["t", "bitcoin-rates"]
   ],
-  "content": "{\"baseCurrency\":\"BTC\",\"rates\":{\"USD\":104500.00},\"updatedAt\":\"2026-01-20T02:15:00.000Z\",\"source\":\"blockchain.info\"}",
+  "content": "{\"baseCurrency\":\"BTC\",\"rates\":{\"USD\":104500.00},\"updatedAt\":\"2026-01-20T02:00:00.000Z\",\"source\":\"blockchain.info\"}",
   "sig": "..."
 }
 ```
@@ -71,14 +77,14 @@ Blockchain.info  -->  bitcoin-rate-publisher.js   -->  Nostr Relay
 
 - **kind 30078**: Replaceable parameterized event (NIP-78)
 - **d-tag**: Unique identifier for each rate feed
-  - `splitstr-currency-rates` for fiat
+  - `splitstr-fiat-rates` for fiat
   - `splitstr-bitcoin-rates` for Bitcoin
-- **L/l tags**: NIP-32 labels for currency filtering
+- **t-tags**: Topic tags for filtering
 - **content**: JSON with base currency, rates object, timestamp, and source
 
 ## Client Usage
 
 To convert BTC to other currencies, clients fetch both events and compute:
 ```
-BTC/EUR = BTC/USD × USD/EUR
+BTC/EUR = BTC/USD * USD/EUR
 ```
