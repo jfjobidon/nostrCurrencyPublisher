@@ -1,6 +1,7 @@
 # Currency Rate Publisher
 
-Automatically fetches currency exchange rates and publishes them to a Nostr relay.
+- **GitHub**: https://github.com/jfjobidon/nostrCurrencyPublisher
+- **Docker Hub**: https://hub.docker.com/r/jfjobidon/nostr-currency-publisher
 
 ## Features
 
