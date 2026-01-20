@@ -1,7 +1,7 @@
 {
   "name": "nostr-currency-publisher",
   "version": "1.0.0",
-  "description": "Publishes currency exchange rates to Nostr relay for Splitstr app",
+  "description": "Publishes currency exchange rates to Nostr relay",
   "main": "publishCurrencies.js",
   "scripts": {
     "start": "node publishCurrencies.js",
@@ -15,8 +15,7 @@
   "keywords": [
     "nostr",
     "currency",
-    "exchange-rates",
-    "splitstr"
+    "exchange-rates"
   ],
   "author": "Splitstr",
   "license": "MIT",

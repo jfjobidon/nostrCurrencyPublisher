@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Currency Publisher Controller for Splitstr
+ * Currency Publisher Controller
  *
  * Schedules and runs both fiat and Bitcoin rate publishers:
  * - Fiat currencies: Every 15 minutes (1:00, 1:15, 1:30, 1:45, etc.)

@@ -1,5 +1,5 @@
 /**
- * Bitcoin Rates Fetcher for Splitstr
+ * Bitcoin Rates Fetcher
  *
  * Fetches BTC/USD rate from Blockchain.info API.
  */

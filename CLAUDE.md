@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Currency Rate Publisher for Splitstr - Node.js service that fetches currency exchange rates and publishes them to a Nostr relay as kind 30078 events.
+Currency Rate Publisher - Node.js service that fetches currency exchange rates and publishes them to a Nostr relay as kind <EVENT_KIND> events.
 
-- **Fiat rates**: Every 15 minutes from Frankfurter API
-- **Bitcoin rate**: Every hour from Blockchain.info API
+- **Fiat rates**: On schedule (see `fiat.schedule` in `config.js`) from Frankfurter API
+- **Bitcoin rate**: On schedule (see `bitcoin.schedule` in `config.js`) from Blockchain.info API
 
 ## Commands
 
@@ -40,14 +40,14 @@ publishCurrencies.js     # Controller - scheduling and orchestration
 ```
 
 The controller handles all scheduling:
-- Fiat: every 15 minutes (quarter hours)
-- Bitcoin: every hour (minute 0)
+- Fiat: (quarter hours by default) see `fiat.schedule` in `config.js`
+- Bitcoin: (minute 0 by default) see `bitcoin.schedule` in `config.js`
 
 ## Nostr Event Details
 
 | Event | d-tag | Source | Schedule |
 |-------|-------|--------|----------|
-| Fiat | `splitstr-fiat-rates` | frankfurter.app | 15 min |
-| Bitcoin | `splitstr-bitcoin-rates` | blockchain.info | Hourly |
+| Fiat | `<APP_NAME>-currency-rates` | frankfurter.app | quarter hours by default (0, 15, 30, 45) |
+| Bitcoin | `<APP_NAME>-bitcoin-rates` | blockchain.info | hour by default (minute 0) |
 
-Events use kind 30078 (configurable in `config.js`).
+Events use kind <EVENT_KIND> (configurable in `config.js`).

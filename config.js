@@ -2,10 +2,12 @@
  * Configuration for Currency Rate Publishers
  */
 
+const appName = process.env.APP_NAME || 'app';
+
 module.exports = {
   // Nostr relay configuration
   relay: {
-    url: 'ws://localhost:8080',
+    url: process.env.RELAY_URL || 'ws://localhost:8080',
     publishTimeout: 10000,
     eventKind: 30078  // REVIEW: should we use different event kind ? 30079 for fiat and 30080 for bitcoin ?
   },
@@ -16,8 +18,8 @@ module.exports = {
     baseCurrency: 'USD',
     currencies: ['EUR', 'CAD', 'GBP', 'JPY', 'CNY', 'MXN'],
     schedule: 60 * 60 * 1000, // 1 hour in ms
-    nostrDTag: 'splitstr-currency-rates',
-    nostrTTags: ['splitstr', 'currency-rates']
+    nostrDTag: `${appName}-currency-rates`,
+    nostrTTags: [appName, 'currency-rates']
   },
 
   // Bitcoin configuration
@@ -26,7 +28,7 @@ module.exports = {
     baseCurrency: 'BTC',
     quoteCurrency: 'USD',
     schedule: 15 * 60 * 1000, // 15 minutes in ms
-    nostrDTag: 'splitstr-bitcoin-rates',
-    nostrTTags: ['splitstr', 'bitcoin-rates']
+    nostrDTag: `${appName}-bitcoin-rates`,
+    nostrTTags: [appName, 'bitcoin-rates']
   }
 };

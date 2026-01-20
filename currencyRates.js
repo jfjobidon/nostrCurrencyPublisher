@@ -1,5 +1,5 @@
 /**
- * Currency Rates Fetcher for Splitstr
+ * Currency Rates Fetcher
  *
  * Fetches fiat currency rates from Frankfurter API.
  */

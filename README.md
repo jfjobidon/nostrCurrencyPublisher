@@ -1,19 +1,19 @@
-# Currency Rate Publisher for Splitstr
+# Currency Rate Publisher
 
 Automatically fetches currency exchange rates and publishes them to a Nostr relay.
 
 ## Features
 
 ### Fiat Currency Rates
-- Fetches rates for: USD, EUR, CAD, GBP, JPY, CNY, MXN
-- Publishes to Nostr relay as kind 30078 events
-- Runs automatically every 15 minutes
+- Fetches rates for configurable currencies (see `fiat.currencies` in `config.js`)
+- Publishes to Nostr relay as kind <EVENT_KIND> events
+- Runs on schedule (see `fiat.schedule` in `config.js`)
 - Uses free Frankfurter API (no API key needed)
 
 ### Bitcoin Rate
 - Fetches BTC/USD rate from Blockchain.info API
-- Publishes as separate kind 30078 event
-- Runs automatically every hour (on the hour)
+- Publishes to Nostr relay (see `relay.eventKind` in `config.js`)
+- Runs on schedule (see `bitcoin.schedule` in `config.js`)
 - No API key needed
 
 ## Prerequisites
@@ -41,6 +41,8 @@ This will output:
 Private Key (hex): abc123def456...
 Keep this secret and add to .env file!
 ```
+
+**Note:** Fiat and Bitcoin rates will be published immediately when the script (or container) starts, then on their configured schedules.
 
 ### 3. Configure Environment
 
@@ -110,12 +112,12 @@ publishCurrencies.js     # Controller - schedules and orchestrates
 
 ```json
 {
-  "kind": 30078,
+  "kind": <EVENT_KIND>,
   "pubkey": "<your-pubkey>",
   "created_at": 1705680000,
   "tags": [
-    ["d", "splitstr-fiat-rates"],
-    ["t", "splitstr"],
+    ["d", "<APP_NAME>-currency-rates"],
+    ["t", "<APP_NAME>"],
     ["t", "fiat"]
   ],
   "content": "{\"baseCurrency\":\"USD\",\"rates\":{\"EUR\":0.92,\"CAD\":1.35,\"GBP\":0.79,\"JPY\":148.5,\"CNY\":7.24,\"MXN\":16.8},\"updatedAt\":\"2025-01-19T14:00:00Z\",\"source\":\"frankfurter.app\"}",
@@ -127,12 +129,12 @@ publishCurrencies.js     # Controller - schedules and orchestrates
 
 ```json
 {
-  "kind": 30078,
+  "kind": <EVENT_KIND>,
   "pubkey": "<your-pubkey>",
   "created_at": 1705680000,
   "tags": [
-    ["d", "splitstr-bitcoin-rates"],
-    ["t", "splitstr"],
+    ["d", "<APP_NAME>-bitcoin-rates"],
+    ["t", "<APP_NAME>"],
     ["t", "bitcoin-rates"]
   ],
   "content": "{\"baseCurrency\":\"BTC\",\"rates\":{\"USD\":104500.00},\"updatedAt\":\"2025-01-19T14:00:00Z\",\"source\":\"blockchain.info\"}",
@@ -140,7 +142,7 @@ publishCurrencies.js     # Controller - schedules and orchestrates
 }
 ```
 
-### Content Schema
+### Content Schema (exemple)
 
 ```typescript
 interface CurrencyRatesEvent {
@@ -179,15 +181,15 @@ const relays = ['ws://localhost:8080'];
 
 // Query fiat rates
 const fiatEvents = await pool.querySync(relays, {
-  kinds: [30078],
-  '#d': ['splitstr-fiat-rates'],
+  kinds: [<EVENT_KIND>],
+  '#d': ['<APP_NAME>-currency-rates'],
   limit: 1
 });
 
 // Query Bitcoin rate
 const btcEvents = await pool.querySync(relays, {
-  kinds: [30078],
-  '#d': ['splitstr-bitcoin-rates'],
+  kinds: [<EVENT_KIND>],
+  '#d': ['<APP_NAME>-bitcoin-rates'],
   limit: 1
 });
 
@@ -244,9 +246,11 @@ cp .env.example .env
 Edit `config.js` to customize:
 
 - `relay.url` - Your relay URL
-- `relay.eventKind` - Nostr event kind (default: 30078)
+- `relay.eventKind` - Nostr event kind (default: <EVENT_KIND>)
 - `fiat.currencies` - Currencies to fetch
 - `fiat.baseCurrency` - Base currency
+
+**Note:** If `APP_NAME` is not set in your `.env` file, it defaults to `app`. This means your Nostr events will use d-tags like `app-currency-rates` and `app-bitcoin-rates`. Set a unique `APP_NAME` to avoid conflicts with other publishers.
 
 ## API Reference
 
