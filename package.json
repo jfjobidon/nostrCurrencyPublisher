@@ -1,0 +1,30 @@
+{
+  "name": "splitstr-currency-publisher",
+  "version": "1.0.0",
+  "description": "Publishes currency exchange rates to Nostr relay for Splitstr app",
+  "main": "currency-rate-publisher.js",
+  "scripts": {
+    "start": "node currency-rate-publisher.js",
+    "start:bitcoin": "node bitcoin-rate-publisher.js",
+    "test": "node -e \"require('./currency-rate-publisher.js').fetchCurrencyRates().then(d => console.log(d))\"",
+    "test:bitcoin": "node -e \"require('./bitcoin-rate-publisher.js').fetchBitcoinRate().then(d => console.log(d))\"",
+    "generate-key": "node -e \"const { generateSecretKey } = require('nostr-tools'); const { bytesToHex } = require('@noble/hashes/utils'); const sk = generateSecretKey(); console.log('Private Key (hex):', bytesToHex(sk)); console.log('Keep this secret and add to .env file!');\""
+  },
+  "keywords": [
+    "nostr",
+    "currency",
+    "exchange-rates",
+    "splitstr"
+  ],
+  "author": "Splitstr",
+  "license": "MIT",
+  "dependencies": {
+    "@noble/hashes": "^1.4.0",
+    "dotenv": "^17.2.3",
+    "nostr-tools": "^2.7.0",
+    "ws": "^8.19.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
