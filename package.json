@@ -8,7 +8,7 @@
     "test:fiat": "node -e \"require('./currencyRates').fetchCurrencyRates(require('./config').fiat).then(d => console.log(d))\"",
     "test:bitcoin": "node -e \"require('./bitcoinRates').fetchBitcoinRate(require('./config').bitcoin).then(d => console.log(d))\"",
     "docker:build": "docker build -t currency-publisher .",
-    "docker:up": "docker run -d --name currency-publisher --restart unless-stopped --network host --env-file .env -e RELAY_URL=ws://localhost:8080 currency-publisher",
+    "docker:up": "docker rm -f currency-publisher 2>/dev/null; docker run -d --name currency-publisher --restart unless-stopped --network host --env-file .env currency-publisher",
     "docker:down": "docker stop currency-publisher && docker rm currency-publisher",
     "generate-key": "node -e \"const { generateSecretKey } = require('nostr-tools'); const { bytesToHex } = require('@noble/hashes/utils'); const sk = generateSecretKey(); console.log('Private Key (hex):', bytesToHex(sk)); console.log('Keep this secret and add to .env file!');\""
   },
