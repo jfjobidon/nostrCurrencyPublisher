@@ -6,7 +6,8 @@ module.exports = {
   // Nostr relay configuration
   relay: {
     url: 'ws://localhost:8080',
-    publishTimeout: 10000
+    publishTimeout: 10000,
+    eventKind: 30078  // REVIEW: should we use different event kind ? 30079 for fiat and 30080 for bitcoin ?
   },
 
   // Fiat currency configuration

@@ -50,7 +50,7 @@ async function publishEventToNostr(event, config) {
  * Publish fiat currency rates to Nostr relay
  */
 async function publishFiatRatesToNostr(ratesData, config) {
-  const { fiat } = config;
+  const { fiat, relay } = config;
 
   try {
     const content = {
@@ -61,14 +61,11 @@ async function publishFiatRatesToNostr(ratesData, config) {
     };
 
     const event = {
-      kind: 30078,
+      kind: relay.eventKind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ['d', fiat.nostrDTag],
-        ...fiat.nostrTTags.map(tag => ['t', tag]),
-        ['L', 'currency'],
-        ['l', fiat.baseCurrency, 'currency'],
-        ...fiat.currencies.map(curr => ['l', curr, 'currency'])
+        ...fiat.nostrTTags.map(tag => ['t', tag])
       ],
       content: JSON.stringify(content)
     };
@@ -85,7 +82,7 @@ async function publishFiatRatesToNostr(ratesData, config) {
  * Publish Bitcoin rate to Nostr relay
  */
 async function publishBitcoinRateToNostr(ratesData, config) {
-  const { bitcoin } = config;
+  const { bitcoin, relay } = config;
 
   try {
     const content = {
@@ -96,14 +93,11 @@ async function publishBitcoinRateToNostr(ratesData, config) {
     };
 
     const event = {
-      kind: 30078,
+      kind: relay.eventKind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ['d', bitcoin.nostrDTag],
-        ...bitcoin.nostrTTags.map(tag => ['t', tag]),
-        ['L', 'currency'],
-        ['l', bitcoin.baseCurrency, 'currency'],
-        ['l', bitcoin.quoteCurrency, 'currency']
+        ...bitcoin.nostrTTags.map(tag => ['t', tag])
       ],
       content: JSON.stringify(content)
     };

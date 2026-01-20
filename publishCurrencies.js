@@ -18,7 +18,8 @@ const { fetchBitcoinRate } = require('./bitcoinRates');
 const config = {
   relay: {
     url: process.env.RELAY_URL || configFile.relay.url,
-    publishTimeout: configFile.relay.publishTimeout
+    publishTimeout: configFile.relay.publishTimeout,
+    eventKind: configFile.relay.eventKind
   },
   fiat: configFile.fiat,
   bitcoin: configFile.bitcoin,
