@@ -270,6 +270,7 @@ Edit `config.js` to customize:
 - **Never commit your `.env` file** - it contains your private key
 - Keep your private key secure
 - Consider using a dedicated keypair for this service
+- The private key is only used to sign Nostr events - it has no financial or privacy implications and can be regenerated at any time with `npm run generate-key`
 
 ## License
 
